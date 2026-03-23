@@ -12,7 +12,7 @@ jobs:
       - name: Check Bro health endpoint
         id: bro
         run: |
-          HTTP_CODE=$(curl -s -o /tmp/health-body -w '%{http_code}' \
+          HTTP_CODE=$(curl -s -o /dev/null -w '%{http_code}' \
             --connect-timeout 10 --max-time 20 \
             "http://34.61.96.154:3460/health" 2>/dev/null || echo "000")
           echo "http_code=$HTTP_CODE" >> "$GITHUB_OUTPUT"
@@ -22,7 +22,7 @@ jobs:
             echo "❌ Bro health: HTTP $HTTP_CODE"
           fi
 
-      - name: Set Slack bot status (on failure)
+      - name: Set bot presence away (on failure)
         if: steps.bro.outputs.http_code != '200'
         env:
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
@@ -31,10 +31,9 @@ jobs:
             echo "SLACK_BOT_TOKEN not set, skipping"
             exit 0
           fi
-          curl -s -X POST "https://slack.com/api/users.profile.set" \
-            -H "Content-Type: application/json; charset=utf-8" \
+          curl -s -X POST "https://slack.com/api/users.setPresence" \
             -H "Authorization: Bearer $SLACK_BOT_TOKEN" \
-            -d '{"profile":{"status_emoji":":red_circle:","status_text":"Offline","status_expiration":0}}'
+            -d "presence=away"
 
       - name: Slack notification (failure)
         if: steps.bro.outputs.http_code != '200'
